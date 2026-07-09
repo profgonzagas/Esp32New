@@ -1,0 +1,11 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "leituras": {
+      ".read": true,
+      ".write": "auth != null"
+    }
+  }
+}

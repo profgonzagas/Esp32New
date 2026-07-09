@@ -1,0 +1,275 @@
+using ESP32Controller.Models;
+using ESP32Controller.Services;
+using System.Windows.Input;
+
+namespace ESP32Controller.ViewModels;
+
+public class WiFiControlViewModel : BaseViewModel
+{
+    private readonly ESP32HttpService _httpService;
+    private readonly ConfiguracaoService _configService;
+    
+    private string _enderecoIP = "192.168.XXX.XXX";
+    private int _porta = 80;
+    private string _endpointCustom = "";
+    private string _payloadCustom = "";
+    private string _metodoselecionado = "GET";
+    private string _resposta = "";
+    private bool _conectado;
+    private int _valorPWM = 0;
+    private int _pinoPWM = 2;
+    private int _pinoGPIO = 2;
+    
+    public string EnderecoIP
+    {
+        get => _enderecoIP;
+        set => SetProperty(ref _enderecoIP, value);
+    }
+    
+    public int Porta
+    {
+        get => _porta;
+        set => SetProperty(ref _porta, value);
+    }
+    
+    public string EndpointCustom
+    {
+        get => _endpointCustom;
+        set => SetProperty(ref _endpointCustom, value);
+    }
+    
+    public string PayloadCustom
+    {
+        get => _payloadCustom;
+        set => SetProperty(ref _payloadCustom, value);
+    }
+    
+    public string MetodoSelecionado
+    {
+        get => _metodoselecionado;
+        set => SetProperty(ref _metodoselecionado, value);
+    }
+    
+    public string Resposta
+    {
+        get => _resposta;
+        set => SetProperty(ref _resposta, value);
+    }
+    
+    public bool Conectado
+    {
+        get => _conectado;
+        set
+        {
+            SetProperty(ref _conectado, value);
+            OnPropertyChanged(nameof(StatusTexto));
+            OnPropertyChanged(nameof(StatusCor));
+            OnPropertyChanged(nameof(BotaoConectarTexto));
+        }
+    }
+    
+    public string StatusTexto => Conectado ? "🟢 Conectado" : "🔴 Desconectado";
+    public string StatusCor => Conectado ? "#4CAF50" : "#F44336";
+    public string BotaoConectarTexto => Conectado ? "🔌 Desconectar" : "🔗 Conectar";
+    
+    public int ValorPWM
+    {
+        get => _valorPWM;
+        set => SetProperty(ref _valorPWM, value);
+    }
+    
+    public int PinoPWM
+    {
+        get => _pinoPWM;
+        set => SetProperty(ref _pinoPWM, value);
+    }
+    
+    public int PinoGPIO
+    {
+        get => _pinoGPIO;
+        set => SetProperty(ref _pinoGPIO, value);
+    }
+    
+    public List<string> Metodos { get; } = new() { "GET", "POST" };
+    public List<int> PinosDisponiveis { get; } = new() { 2, 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33 };
+    
+    public ICommand ConectarCommand { get; }
+    public ICommand EnviarComandoCommand { get; }
+    public ICommand LigarLedCommand { get; }
+    public ICommand DesligarLedCommand { get; }
+    public ICommand ToggleLedCommand { get; }
+    public ICommand EnviarPWMCommand { get; }
+    public ICommand GPIOHighCommand { get; }
+    public ICommand GPIOLowCommand { get; }
+    public ICommand ObterStatusCommand { get; }
+    public ICommand MostrarAjudaCommand { get; }
+    
+    public WiFiControlViewModel(ESP32HttpService httpService, ConfiguracaoService configService)
+    {
+        _httpService = httpService;
+        _configService = configService;
+        
+        Titulo = "Controle WiFi";
+        
+        ConectarCommand = new Command(async () => await ConectarAsync());
+        EnviarComandoCommand = new Command(async () => await EnviarComandoCustomAsync());
+        LigarLedCommand = new Command(async () => await ExecutarAsync(_httpService.LigarLedAsync()));
+        DesligarLedCommand = new Command(async () => await ExecutarAsync(_httpService.DesligarLedAsync()));
+        ToggleLedCommand = new Command(async () => await ExecutarAsync(_httpService.ToggleLedAsync()));
+        EnviarPWMCommand = new Command(async () => await EnviarPWMAsync());
+        GPIOHighCommand = new Command(async () => await ExecutarAsync(_httpService.DefinirPinoAsync(PinoGPIO, true)));
+        GPIOLowCommand = new Command(async () => await ExecutarAsync(_httpService.DefinirPinoAsync(PinoGPIO, false)));
+        ObterStatusCommand = new Command(async () => await ExecutarAsync(_httpService.ObterStatusAsync()));
+        MostrarAjudaCommand = new Command(() => MostrarAjudaAsync());
+        
+        _httpService.OnStatusConexaoChanged += (s, c) =>
+        {
+            MainThread.BeginInvokeOnMainThread(() => Conectado = c);
+        };
+        
+        _httpService.OnMensagemRecebida += (s, msg) =>
+        {
+            MainThread.BeginInvokeOnMainThread(() => Resposta = msg);
+        };
+        
+        CarregarConfiguracao();
+    }
+    
+    private void CarregarConfiguracao()
+    {
+        var dispositivo = _configService.CarregarDispositivo();
+        EnderecoIP = dispositivo.EnderecoIP;
+        Porta = dispositivo.Porta;
+    }
+    
+    private async Task ConectarAsync()
+    {
+        if (IsBusy) return;
+        
+        IsBusy = true;
+        
+        try
+        {
+            if (Conectado)
+            {
+                // Desconectar
+                _httpService.Desconectar();
+                Conectado = false;
+                Resposta = "🔌 Desconectado";
+            }
+            else
+            {
+                // Conectar
+                System.Diagnostics.Debug.WriteLine(">>> INICIANDO CONEXÃO");
+                System.Diagnostics.Trace.WriteLine(">>> INICIANDO CONEXÃO");
+                
+                var dispositivo = new DispositivoESP32
+                {
+                    EnderecoIP = EnderecoIP,
+                    Porta = Porta
+                };
+                
+                System.Diagnostics.Debug.WriteLine($">>> IP: {EnderecoIP}, Porta: {Porta}");
+                
+                _httpService.ConfigurarDispositivo(dispositivo);
+                _configService.SalvarDispositivo(dispositivo);
+                
+                System.Diagnostics.Debug.WriteLine(">>> CHAMANDO TestarConexaoAsync");
+                var conectado = await _httpService.TestarConexaoAsync();
+                System.Diagnostics.Debug.WriteLine($">>> RESULTADO: {conectado}");
+                Resposta = conectado ? "✓ Conexão bem sucedida!" : "✗ Falha na conexão. Verifique o IP e se o ESP32 está ligado.";
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($">>> ERRO: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($">>> STACK: {ex.StackTrace}");
+            Resposta = $"✗ Erro: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+    
+    private async Task EnviarComandoCustomAsync()
+    {
+        if (IsBusy || string.IsNullOrWhiteSpace(EndpointCustom)) return;
+        
+        IsBusy = true;
+        
+        try
+        {
+            Resposta = await _httpService.EnviarComandoAsync(EndpointCustom, MetodoSelecionado, PayloadCustom);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+    
+    private async Task EnviarPWMAsync()
+    {
+        if (IsBusy) return;
+        
+        IsBusy = true;
+        
+        try
+        {
+            Resposta = await _httpService.EnviarPWMAsync(PinoPWM, ValorPWM);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+    
+    private async Task ExecutarAsync(Task<string> task)
+    {
+        if (IsBusy) return;
+        
+        IsBusy = true;
+        
+        try
+        {
+            Resposta = await task;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+    
+    private void MostrarAjudaAsync()
+    {
+        var ajuda = @"OPÇÕES DE COMANDO CUSTOMIZADO:
+
+GET - Requisição de leitura:
+  /status - Retorna status completo
+  /temperatura - Temperatura
+  /umidade - Umidade
+  /sensores - Todos sensores
+  /gas - Nível de gás
+  /chama - Status chama
+  /som - Nível som
+  /led/on, /led/off, /led/toggle
+  /rele/1/on, /rele/1/off, /rele/1/toggle
+  /rele/2/on, /rele/2/off, /rele/2/toggle
+
+POST - Requisição com dados:
+  Payload JSON (opcional)
+  Ex: {""pino"":13, ""valor"":255}";
+        
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            if (Application.Current?.Windows.Count > 0)
+            {
+                var window = Application.Current.Windows[0];
+                if (window?.Page != null)
+                {
+                    await window.Page.DisplayAlert("ℹ️ Ajuda WiFi", ajuda, "OK");
+                }
+            }
+        });
+    }
+}

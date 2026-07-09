@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ESP32Controller.ViewModels"
+             xmlns:micro="clr-namespace:Microcharts.Maui;assembly=Microcharts.Maui"
+             x:Class="ESP32Controller.Views.GraficosPage"
+             x:DataType="vm:GraficosViewModel"
+             Title="Gráficos"
+             BackgroundColor="#0D1117">
+    
+    <ScrollView>
+        <VerticalStackLayout Spacing="10" Padding="12">
+
+            <!-- Status Bar -->
+            <Border BackgroundColor="#161B22" Stroke="#21262D" Padding="12,10"
+                    StrokeShape="RoundRectangle 10">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label Text="{Binding StatusMensagem}"
+                           FontSize="13"
+                           TextColor="#8B949E"
+                           VerticalOptions="Center"/>
+                    <Button Grid.Column="1"
+                            Text="{Binding MqttConectado, Converter={StaticResource BoolToTextConverter}}"
+                            Command="{Binding ConectarMQTTCommand}"
+                            BackgroundColor="{Binding MqttConectado, Converter={StaticResource BoolToColorConverter}}"
+                            TextColor="White"
+                            FontSize="11"
+                            CornerRadius="6"
+                            Padding="10,5"
+                            HeightRequest="32"/>
+                </Grid>
+            </Border>
+
+            <!-- Cards de valores atuais -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8"
+                  IsVisible="{Binding UltimoDado, Converter={StaticResource ObjectToBoolConverter}}">
+                <Border Grid.Column="0" BackgroundColor="#1C1F2A" Stroke="#E85D5D44" Padding="10"
+                        StrokeShape="RoundRectangle 10">
+                    <VerticalStackLayout HorizontalOptions="Center">
+                        <Label Text="🌡" FontSize="18" HorizontalOptions="Center"/>
+                        <Label Text="{Binding UltimoDado.TemperaturaFormatada}" FontSize="14" TextColor="#E85D5D" FontAttributes="Bold" HorizontalOptions="Center"/>
+                        <Label Text="Temp" FontSize="10" TextColor="#666666" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Column="1" BackgroundColor="#1C1F2A" Stroke="#2E86DE44" Padding="10"
+                        StrokeShape="RoundRectangle 10">
+                    <VerticalStackLayout HorizontalOptions="Center">
+                        <Label Text="💧" FontSize="18" HorizontalOptions="Center"/>
+                        <Label Text="{Binding UltimoDado.UmidadeFormatada}" FontSize="14" TextColor="#2E86DE" FontAttributes="Bold" HorizontalOptions="Center"/>
+                        <Label Text="Umid" FontSize="10" TextColor="#666666" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Column="2" BackgroundColor="#1C1F2A" Stroke="#F7A41D44" Padding="10"
+                        StrokeShape="RoundRectangle 10">
+                    <VerticalStackLayout HorizontalOptions="Center">
+                        <Label Text="💡" FontSize="18" HorizontalOptions="Center"/>
+                        <Label Text="{Binding UltimoDado.LdrPercentualFormatado}" FontSize="14" TextColor="#F7A41D" FontAttributes="Bold" HorizontalOptions="Center"/>
+                        <Label Text="Luz" FontSize="10" TextColor="#666666" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+
+            <!-- Gráfico Temperatura BME280 -->
+            <Border BackgroundColor="#161B22" Stroke="#21262D" Padding="0"
+                    StrokeShape="RoundRectangle 12">
+                <VerticalStackLayout>
+                    <Label Text="🌡 Temp BME280 (°C)" FontSize="13" FontAttributes="Bold"
+                           TextColor="#8B949E" Margin="14,12,14,0"/>
+                    <BoxView HeightRequest="1" Color="#21262D" Margin="0,8,0,0"/>
+                    <micro:ChartView Chart="{Binding GraficoTemperatura}"
+                                     HeightRequest="190" Margin="0"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Gráfico Umidade BME280 -->
+            <Border BackgroundColor="#161B22" Stroke="#21262D" Padding="0"
+                    StrokeShape="RoundRectangle 12">
+                <VerticalStackLayout>
+                    <Label Text="💧 Umidade BME280 (%)" FontSize="13" FontAttributes="Bold"
+                           TextColor="#8B949E" Margin="14,12,14,0"/>
+                    <BoxView HeightRequest="1" Color="#21262D" Margin="0,8,0,0"/>
+                    <micro:ChartView Chart="{Binding GraficoUmidade}"
+                                     HeightRequest="190" Margin="0"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Gráfico Pressão -->
+            <Border BackgroundColor="#161B22" Stroke="#21262D" Padding="0"
+                    StrokeShape="RoundRectangle 12">
+                <VerticalStackLayout>
+                    <Label Text="⏱ Pressão (hPa)" FontSize="13" FontAttributes="Bold"
+                           TextColor="#8B949E" Margin="14,12,14,0"/>
+                    <BoxView HeightRequest="1" Color="#21262D" Margin="0,8,0,0"/>
+                    <micro:ChartView Chart="{Binding GraficoPressao}"
+                                     HeightRequest="190" Margin="0"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Gráfico Temp DHT22 -->
+            <Border BackgroundColor="#161B22" Stroke="#21262D" Padding="0"
+                    StrokeShape="RoundRectangle 12">
+                <VerticalStackLayout>
+                    <Label Text="🌡 Temp DHT22 (°C)" FontSize="13" FontAttributes="Bold"
+                           TextColor="#8B949E" Margin="14,12,14,0"/>
+                    <BoxView HeightRequest="1" Color="#21262D" Margin="0,8,0,0"/>
+                    <micro:ChartView Chart="{Binding GraficoTempDHT}"
+                                     HeightRequest="190" Margin="0"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Gráfico UV -->
+            <Border BackgroundColor="#161B22" Stroke="#21262D" Padding="0"
+                    StrokeShape="RoundRectangle 12">
+                <VerticalStackLayout>
+                    <Label Text="☀️ Índice UV" FontSize="13" FontAttributes="Bold"
+                           TextColor="#8B949E" Margin="14,12,14,0"/>
+                    <BoxView HeightRequest="1" Color="#21262D" Margin="0,8,0,0"/>
+                    <micro:ChartView Chart="{Binding GraficoUV}"
+                                     HeightRequest="190" Margin="0"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Gráfico Luminosidade -->
+            <Border BackgroundColor="#161B22" Stroke="#21262D" Padding="0"
+                    StrokeShape="RoundRectangle 12">
+                <VerticalStackLayout>
+                    <Label Text="💡 Luminosidade LDR (%)" FontSize="13" FontAttributes="Bold"
+                           TextColor="#8B949E" Margin="14,12,14,0"/>
+                    <BoxView HeightRequest="1" Color="#21262D" Margin="0,8,0,0"/>
+                    <micro:ChartView Chart="{Binding GraficoLuminosidade}"
+                                     HeightRequest="190" Margin="0"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Loading -->
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                               Color="#58A6FF" HeightRequest="40"/>
+            
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

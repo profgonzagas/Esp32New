@@ -1,0 +1,51 @@
+# Build results
+bin/
+obj/
+out/
+
+# PlatformIO build artifacts (o firmware compilado embute o secrets.h!)
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Credenciais sensíveis (WiFi, MQTT)
+ESP32_Arduino_Code/**/src/secrets.h
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider
+.idea/
+
+# VS Code
+.vscode/
+
+# Claude Code (config local, não deve ser versionada)
+.claude/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Android
+*.apk
+*.aab
+*.keystore
+
+# iOS
+*.ipa
+*.dSYM.zip
+*.dSYM
+# Arquivos de configuração com credenciais
+include/secrets.h
+secrets.h
+appsettings.*.json
+*.key
+*.pem
